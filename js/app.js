@@ -239,6 +239,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
+    // REDIMENSIONAR CON RUEDA DEL MOUSE (scroll)
+    // ============================================================
+    cropBox.addEventListener('wheel', (e) => {
+        e.preventDefault(); // Evita que la página se desplace
+
+        const delta = e.deltaY > 0 ? -1 : 1; // -1 para reducir, +1 para agrandar
+        const step = 10; // Cantidad de píxeles a cambiar
+
+        const rect = cropBox.getBoundingClientRect();
+        const parentRect = cropBox.parentElement.getBoundingClientRect();
+
+        let newSize = rect.width + (delta * step);
+        // Limitar tamaño mínimo y máximo
+        const minSize = 30;
+        const maxSize = Math.min(parentRect.width, parentRect.height);
+        newSize = Math.max(minSize, Math.min(newSize, maxSize));
+
+        // Mantener centrado al redimensionar
+        const centerX = rect.left + rect.width / 2 - parentRect.left;
+        const centerY = rect.top + rect.height / 2 - parentRect.top;
+
+        cropBox.style.width = newSize + 'px';
+        cropBox.style.height = newSize + 'px';
+        cropBox.style.left = (centerX - newSize / 2) + 'px';
+        cropBox.style.top = (centerY - newSize / 2) + 'px';
+
+        // Evitar que se salga del contenedor
+        if (parseFloat(cropBox.style.left) < 0) cropBox.style.left = '0px';
+        if (parseFloat(cropBox.style.top) < 0) cropBox.style.top = '0px';
+
+        updateLines(); // Actualizar líneas verticales
+    }, { passive: false }); // passive: false para permitir e.preventDefault()
+    // ============================================================
     // 8. LIMPIAR TODAS LAS FOTOS
     // ============================================================
     function clearAll() {
