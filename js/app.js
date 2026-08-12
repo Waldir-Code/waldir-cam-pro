@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearBtn = document.getElementById('clearBtn');
     const gallery = document.getElementById('gallery');
     const countPhotos = document.getElementById('countPhotos');
-    const cropBox = document.getElementById('cropBox'); // <-- DECLARADO
+    const cropBox = document.getElementById('cropBox');
 
     let stream = null;
     let photos = [];
@@ -70,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
             stream = await navigator.mediaDevices.getUserMedia(constraints);
             video.srcObject = stream;
             await video.play();
-            // ===== INICIALIZAR CUADRADO =====
             initCropBox();
             currentDeviceId = deviceId;
         } catch (err) {
@@ -80,33 +79,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // 4. FUNCIÓN PARA INICIALIZAR EL CUADRADO
+    // 4. INICIALIZAR / REINICIALIZAR EL CUADRADO DE RECORTE
     // ============================================================
-    const CROP_SIZE_FACTOR = 0.92; // ← Define una constante al principio para ajustar fácilmente
+    const CROP_SIZE_FACTOR = 0.92;
 
     function initCropBox() {
-        const parentRect = cropBox.parentElement.getBoundingClientRect();
+        const parent = cropBox.parentElement;
+        if (!parent) return;
+        const parentRect = parent.getBoundingClientRect();
+        // Si el contenedor no tiene tamaño, salimos
+        if (parentRect.width === 0 || parentRect.height === 0) return;
+
         const size = Math.min(parentRect.width, parentRect.height) * CROP_SIZE_FACTOR;
         cropBox.style.width = size + 'px';
         cropBox.style.height = size + 'px';
         cropBox.style.left = (parentRect.width - size) / 2 + 'px';
         cropBox.style.top = (parentRect.height - size) / 2 + 'px';
 
-        updateLines(); // ← llama a la nueva función
+        updateLines();
     }
 
     function updateLines() {
         const boxWidth = cropBox.offsetWidth;
+        if (boxWidth === 0) return;
         const separationPercent = 0.80;
         const separation = boxWidth * separationPercent;
         const leftLineX = (boxWidth - separation) / 2;
         const rightLineX = leftLineX + separation;
 
-        cropBox.querySelector('.line-left').style.left = leftLineX + 'px';
-        cropBox.querySelector('.line-right').style.left = rightLineX + 'px';
+        const leftLine = cropBox.querySelector('.line-left');
+        const rightLine = cropBox.querySelector('.line-right');
+        if (leftLine) leftLine.style.left = leftLineX + 'px';
+        if (rightLine) rightLine.style.left = rightLineX + 'px';
     }
+
     // ============================================================
-    // 5. CAPTURAR FOTO (SOLO DENTRO DEL CUADRADO)
+    // 5. CAPTURAR FOTO (DENTRO DEL CUADRADO)
     // ============================================================
     function capturePhoto() {
         if (!stream) {
@@ -114,21 +122,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Obtener el rectángulo del video y del crop box
         const videoRect = video.getBoundingClientRect();
         const cropRect = cropBox.getBoundingClientRect();
 
-        // Calcular la escala para pasar de píxeles de pantalla a píxeles reales del video
         const scaleX = video.videoWidth / videoRect.width;
         const scaleY = video.videoHeight / videoRect.height;
 
-        // Coordenadas en el video original (en píxeles reales)
         let sx = (cropRect.left - videoRect.left) * scaleX;
         let sy = (cropRect.top - videoRect.top) * scaleY;
         let sw = cropRect.width * scaleX;
         let sh = cropRect.height * scaleY;
 
-        // Ajustar para que no se salga del video
         const vw = video.videoWidth;
         const vh = video.videoHeight;
         sx = Math.max(0, Math.min(sx, vw - 1));
@@ -136,17 +140,13 @@ document.addEventListener('DOMContentLoaded', () => {
         sw = Math.max(1, Math.min(sw, vw - sx));
         sh = Math.max(1, Math.min(sh, vh - sy));
 
-        // Configurar el canvas con el tamaño exacto del recorte
         canvas.width = Math.round(sw);
         canvas.height = Math.round(sh);
 
-        // Dibujar solo la parte recortada
         ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-        // Convertir a imagen
         const dataURL = canvas.toDataURL('image/png');
 
-        // Guardar en la galería
         photos.push({
             dataURL,
             timestamp: new Date().toLocaleString()
@@ -239,24 +239,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // REDIMENSIONAR CON RUEDA DEL MOUSE (scroll)
+    // 8. REDIMENSIONAR CON RUEDA (SCROLL)
     // ============================================================
     cropBox.addEventListener('wheel', (e) => {
-        e.preventDefault(); // Evita que la página se desplace
-
-        const delta = e.deltaY > 0 ? -1 : 1; // -1 para reducir, +1 para agrandar
-        const step = 10; // Cantidad de píxeles a cambiar
-
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -1 : 1;
+        const step = 10;
         const rect = cropBox.getBoundingClientRect();
         const parentRect = cropBox.parentElement.getBoundingClientRect();
 
         let newSize = rect.width + (delta * step);
-        // Limitar tamaño mínimo y máximo
         const minSize = 30;
         const maxSize = Math.min(parentRect.width, parentRect.height);
         newSize = Math.max(minSize, Math.min(newSize, maxSize));
 
-        // Mantener centrado al redimensionar
         const centerX = rect.left + rect.width / 2 - parentRect.left;
         const centerY = rect.top + rect.height / 2 - parentRect.top;
 
@@ -265,14 +261,14 @@ document.addEventListener('DOMContentLoaded', () => {
         cropBox.style.left = (centerX - newSize / 2) + 'px';
         cropBox.style.top = (centerY - newSize / 2) + 'px';
 
-        // Evitar que se salga del contenedor
         if (parseFloat(cropBox.style.left) < 0) cropBox.style.left = '0px';
         if (parseFloat(cropBox.style.top) < 0) cropBox.style.top = '0px';
 
-        updateLines(); // Actualizar líneas verticales
-    }, { passive: false }); // passive: false para permitir e.preventDefault()
+        updateLines();
+    }, { passive: false });
+
     // ============================================================
-    // 8. LIMPIAR TODAS LAS FOTOS
+    // 9. LIMPIAR TODAS LAS FOTOS
     // ============================================================
     function clearAll() {
         if (photos.length === 0) return;
@@ -288,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // 9. ARRASTRE DEL CUADRADO (SOLO MUEVE, NO REDIMENSIONA)
+    // 10. ARRASTRE DEL CUADRADO
     // ============================================================
     let isDragging = false;
     let startX, startY, startL, startT;
@@ -326,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ============================================================
-    // 10. BOTONES DE CONTROL (EXPANDIR, REDUCIR, REINICIAR)
+    // 11. BOTONES DE CONTROL (EXPANDIR, REDUCIR, REINICIAR)
     // ============================================================
     document.getElementById('cropExpandBtn').addEventListener('click', () => {
         const rect = cropBox.getBoundingClientRect();
@@ -340,8 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cropBox.style.top = (centerY - newSize / 2) + 'px';
         if (parseFloat(cropBox.style.left) < 0) cropBox.style.left = '0px';
         if (parseFloat(cropBox.style.top) < 0) cropBox.style.top = '0px';
-
-        updateLines(); // ← cambia esto
+        updateLines();
     });
 
     document.getElementById('cropShrinkBtn').addEventListener('click', () => {
@@ -356,23 +351,38 @@ document.addEventListener('DOMContentLoaded', () => {
         cropBox.style.top = (centerY - newSize / 2) + 'px';
         if (parseFloat(cropBox.style.left) < 0) cropBox.style.left = '0px';
         if (parseFloat(cropBox.style.top) < 0) cropBox.style.top = '0px';
-
-        updateLines(); // ← cambia esto
+        updateLines();
     });
 
     document.getElementById('cropResetBtn').addEventListener('click', () => {
-        const parentRect = cropBox.parentElement.getBoundingClientRect();
-        const size = Math.min(parentRect.width, parentRect.height) * CROP_SIZE_FACTOR;
-        cropBox.style.width = size + 'px';
-        cropBox.style.height = size + 'px';
-        cropBox.style.left = (parentRect.width - size) / 2 + 'px';
-        cropBox.style.top = (parentRect.height - size) / 2 + 'px';
-
-        initCropBox();  // ← AGREGAR ESTO (por si acaso)
+        initCropBox();
     });
 
     // ============================================================
-    // 11. EVENTOS DE CAMBIO DE CÁMARA, TECLADO, ETC.
+    // 12. TOGGLES
+    // ============================================================
+    const circleOverlay = document.getElementById('circleOverlay');
+    let isCircleVisible = false;
+    document.getElementById('toggleCircleBtn').addEventListener('click', () => {
+        isCircleVisible = !isCircleVisible;
+        circleOverlay.style.display = isCircleVisible ? 'block' : 'none';
+    });
+
+    let isCrosshairVisible = true;
+    document.getElementById('toggleCrosshairBtn').addEventListener('click', () => {
+        isCrosshairVisible = !isCrosshairVisible;
+        document.getElementById('crosshair').style.display = isCrosshairVisible ? 'block' : 'none';
+    });
+
+    let isLinesVisible = false;
+    document.getElementById('toggleLinesBtn').addEventListener('click', () => {
+        isLinesVisible = !isLinesVisible;
+        const linesOverlay = document.querySelector('.lines-overlay');
+        linesOverlay.style.display = isLinesVisible ? 'block' : 'none';
+    });
+
+    // ============================================================
+    // 13. EVENTOS DE CÁMARA, TECLADO, ETC.
     // ============================================================
     cameraSelect.addEventListener('change', async (e) => {
         const id = e.target.value;
@@ -380,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('keydown', (e) => {
-        // ===== 1. Cerrar modal con Escape =====
+        // Escape cierra modal
         if (e.key === 'Escape') {
             const overlay = document.getElementById('confirmModal');
             if (overlay.style.display === 'flex') {
@@ -388,99 +398,55 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // ===== 2. Capturar con Espacio o Enter =====
+        // Espacio o Enter capturan
         if (e.key === ' ' || e.key === 'Space' || e.key === 'Enter') {
-            // Evita que la página se desplace o envíe formularios
             e.preventDefault();
-            // Llama a la función de captura
             capturePhoto();
-            return; // Salimos para no ejecutar más teclas
+            return;
         }
 
-        // ===== 3. Mover el cuadrado con las flechas =====
-        const STEP = 5; // píxeles que se mueve cada vez
-
-        // Obtener la posición actual del cuadrado
+        // Flechas mueven el cuadro
+        const STEP = 5;
         let left = parseFloat(cropBox.style.left) || 0;
         let top = parseFloat(cropBox.style.top) || 0;
         const parentRect = cropBox.parentElement.getBoundingClientRect();
         const maxL = parentRect.width - cropBox.offsetWidth;
         const maxT = parentRect.height - cropBox.offsetHeight;
-
         let moved = false;
 
         switch (e.key) {
-            case 'ArrowUp':
-                top = Math.max(0, top - STEP);
-                moved = true;
-                break;
-            case 'ArrowDown':
-                top = Math.min(maxT, top + STEP);
-                moved = true;
-                break;
-            case 'ArrowLeft':
-                left = Math.max(0, left - STEP);
-                moved = true;
-                break;
-            case 'ArrowRight':
-                left = Math.min(maxL, left + STEP);
-                moved = true;
-                break;
+            case 'ArrowUp':    top = Math.max(0, top - STEP); moved = true; break;
+            case 'ArrowDown':  top = Math.min(maxT, top + STEP); moved = true; break;
+            case 'ArrowLeft':  left = Math.max(0, left - STEP); moved = true; break;
+            case 'ArrowRight': left = Math.min(maxL, left + STEP); moved = true; break;
         }
 
         if (moved) {
-            e.preventDefault(); // Evita que la página se desplace
+            e.preventDefault();
             cropBox.style.left = left + 'px';
             cropBox.style.top = top + 'px';
         }
 
-        // ===== 4. Teclas + y - para agrandar/reducir (ya las tenías) =====
+        // + y - agrandan / reducen
         if (e.key === '=' || e.key === '+') {
             e.preventDefault();
             document.getElementById('cropExpandBtn').click();
         }
-
         if (e.key === '-' || e.key === '_') {
             e.preventDefault();
             document.getElementById('cropShrinkBtn').click();
         }
     });
 
-    // ===== CÍRCULO =====
-    const circleOverlay = document.getElementById('circleOverlay');
-    let isCircleVisible = false; // true = visible, false = oculto
-
-    document.getElementById('toggleCircleBtn').addEventListener('click', () => {
-        isCircleVisible = !isCircleVisible;
-        circleOverlay.style.display = isCircleVisible ? 'block' : 'none';
-    });
-
-    let isCrosshairVisible = true; // visible por defecto
-
-    document.getElementById('toggleCrosshairBtn').addEventListener('click', () => {
-        isCrosshairVisible = !isCrosshairVisible;
-        document.getElementById('crosshair').style.display = isCrosshairVisible ? 'block' : 'none';
-    });
-
-    let isLinesVisible = false; // empieza oculto
-
-    document.getElementById('toggleLinesBtn').addEventListener('click', () => {
-        isLinesVisible = !isLinesVisible;
-        const linesOverlay = document.querySelector('.lines-overlay');
-        linesOverlay.style.display = isLinesVisible ? 'block' : 'none';
-    });
-
     captureBtn.addEventListener('click', capturePhoto);
     clearBtn.addEventListener('click', clearAll);
 
     // ============================================================
-    // 12. REAJUSTAR CUADRADO AL REDIMENSIONAR LA VENTANA
+    // 14. REAJUSTAR CUADRADO AL REDIMENSIONAR
     // ============================================================
     window.addEventListener('resize', initCropBox);
-    
-
     // ============================================================
-    // 13. INICIO
+    // 15. INICIO
     // ============================================================
     populateCameraSelector();
 });
