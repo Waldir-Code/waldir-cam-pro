@@ -87,7 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const parent = cropBox.parentElement;
         if (!parent) return;
         const parentRect = parent.getBoundingClientRect();
-        // Si el contenedor no tiene tamaño, salimos
         if (parentRect.width === 0 || parentRect.height === 0) return;
 
         const size = Math.min(parentRect.width, parentRect.height) * CROP_SIZE_FACTOR;
@@ -95,22 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
         cropBox.style.height = size + 'px';
         cropBox.style.left = (parentRect.width - size) / 2 + 'px';
         cropBox.style.top = (parentRect.height - size) / 2 + 'px';
-
-        updateLines();
-    }
-
-    function updateLines() {
-        const boxWidth = cropBox.offsetWidth;
-        if (boxWidth === 0) return;
-        const separationPercent = 0.80;
-        const separation = boxWidth * separationPercent;
-        const leftLineX = (boxWidth - separation) / 2;
-        const rightLineX = leftLineX + separation;
-
-        const leftLine = cropBox.querySelector('.line-left');
-        const rightLine = cropBox.querySelector('.line-right');
-        if (leftLine) leftLine.style.left = leftLineX + 'px';
-        if (rightLine) rightLine.style.left = rightLineX + 'px';
     }
 
     // ============================================================
@@ -156,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // 6. RENDERIZAR GALERÍA
+    // 6. RENDERIZAR GALERÍA (con numeración)
     // ============================================================
     function renderGallery() {
         gallery.innerHTML = '';
@@ -172,9 +155,16 @@ document.addEventListener('DOMContentLoaded', () => {
         photos.forEach((photo, index) => {
             const item = document.createElement('div');
             item.className = 'gallery-item';
+
+            // Número de foto (círculo en esquina)
+            const number = document.createElement('div');
+            number.className = 'photo-number';
+            number.textContent = index + 1;
+
             const img = document.createElement('img');
             img.src = photo.dataURL;
             img.alt = `Foto ${index + 1}`;
+
             const actions = document.createElement('div');
             actions.className = 'actions';
             const downloadBtn = document.createElement('button');
@@ -197,10 +187,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             actions.appendChild(downloadBtn);
             actions.appendChild(deleteBtn);
+
+            // Orden de apilado: número, imagen, acciones
+            item.appendChild(number);
             item.appendChild(img);
             item.appendChild(actions);
             gallery.appendChild(item);
         });
+
+        // Desplazar automáticamente a la última foto
+        gallery.scrollTop = gallery.scrollHeight;
     }
 
     // ============================================================
@@ -263,8 +259,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (parseFloat(cropBox.style.left) < 0) cropBox.style.left = '0px';
         if (parseFloat(cropBox.style.top) < 0) cropBox.style.top = '0px';
-
-        updateLines();
     }, { passive: false });
 
     // ============================================================
@@ -336,7 +330,6 @@ document.addEventListener('DOMContentLoaded', () => {
         cropBox.style.top = (centerY - newSize / 2) + 'px';
         if (parseFloat(cropBox.style.left) < 0) cropBox.style.left = '0px';
         if (parseFloat(cropBox.style.top) < 0) cropBox.style.top = '0px';
-        updateLines();
     });
 
     document.getElementById('cropShrinkBtn').addEventListener('click', () => {
@@ -351,7 +344,6 @@ document.addEventListener('DOMContentLoaded', () => {
         cropBox.style.top = (centerY - newSize / 2) + 'px';
         if (parseFloat(cropBox.style.left) < 0) cropBox.style.left = '0px';
         if (parseFloat(cropBox.style.top) < 0) cropBox.style.top = '0px';
-        updateLines();
     });
 
     document.getElementById('cropResetBtn').addEventListener('click', () => {
@@ -445,6 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 14. REAJUSTAR CUADRADO AL REDIMENSIONAR
     // ============================================================
     window.addEventListener('resize', initCropBox);
+
     // ============================================================
     // 15. INICIO
     // ============================================================

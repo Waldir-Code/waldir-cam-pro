@@ -435,18 +435,6 @@ header h1 i {
     display: none;
 }
 
-.line-vertical {
-    position: absolute;
-    top: 0;
-    height: 100%;
-    width: 2px;
-    border-left: 2px dashed #00ff2a;
-    box-sizing: border-box;
-}
-
-.line-left { left: 10%; }
-.line-right { left: 90%; }
-
 .crosshair {
     position: absolute;
     top: 50%;
@@ -585,6 +573,18 @@ header h1 i {
     box-shadow: 0 8px 28px rgba(255, 107, 107, 0.35);
 }
 
+.yellow-rectangle {
+    position: absolute;
+    top: 0;
+    left: 10%;
+    width: 80%;
+    height: 100%;
+    background: rgba(255, 255, 0, 0); /* transparente */
+    border: 2px dashed #ffcc00;        /* ← punteado */
+    pointer-events: none;
+    box-sizing: border-box;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; transform: scale(0.95); }
     to   { opacity: 1; transform: scale(1); }
@@ -681,4 +681,30 @@ header h1 i {
         padding: 2px 4px;
         min-height: 28px;
     }
+}
+
+/* ===== NÚMERO DE FOTO ===== */
+.gallery-item {
+    position: relative; /* Necesario para posicionar el número absoluto */
+}
+
+.photo-number {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+    z-index: 5;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    font-family: 'Inter', sans-serif;
 }
